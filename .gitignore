@@ -7,3 +7,5 @@ sources/
 tmp/
 *.temp
 *.tmp
+/config/*
+!/config/.htaccess
