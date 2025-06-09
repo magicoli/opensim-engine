@@ -1,0 +1,3 @@
+[submodule "opensim-rest"]
+	path = opensim-rest
+	url = https://github.com/magicoli/opensim-rest-php
