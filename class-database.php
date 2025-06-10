@@ -11,7 +11,7 @@ class OSPDO extends PDO {
     
     public function __construct($dsn, $username = null, $password = null, $driver_options = null) {
         // First handle the different attributes formatting
-		if ( WP_DEBUG && WP_DEBUG_DISPLAY ) {
+		if ( OSHELPERS_DEBUG && OSHELPERS_DEBUG_DISPLAY ) {
 			$this->show_errors();
 		}
 
