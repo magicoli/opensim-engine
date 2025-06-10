@@ -23,19 +23,25 @@ if (!defined('OPENSIM_ENGINE_VERSION')) {
     define('OPENSIM_ENGINE_VERSION', '1.0.0');
 }
 
-// Load Composer autoloader for engine dependencies (Laminas)
+// Load Composer autoloader for engine dependencies (currently Laminas)
 require_once OPENSIM_ENGINE_PATH . '/vendor/autoload.php';
 
 // Engine autoloader
 spl_autoload_register(function ($class) {
     if (strpos($class, 'OpenSim_') === 0) {
+        error_log('[DEBUG] Autoloading class: ' . $class);
         $file = OPENSIM_ENGINE_PATH . '/class-' . strtolower(str_replace('_', '-', str_replace('OpenSim_', '', $class))) . '.php';
         if (file_exists($file)) {
+            error_log('[DEBUG] Including file: ' . $file);
             require $file;
         }
     }
 });
 
+// Load Submodules classes
+require_once OPENSIM_ENGINE_PATH . '/opensim-rest/class-rest.php';
+
+// Load Engine functions
 require_once OPENSIM_ENGINE_PATH . '/includes/functions.php';
 
 // Load core Engine classes
