@@ -671,14 +671,16 @@ function set_helpers_locale( $locale = null, $domain = 'messages' ) {
 	}
 
 	$variants = array_unique( $variants );
-	if ( ! setlocale( LC_ALL, $variants ) ) {
+	$locale = setlocale( LC_ALL, $variants );
+	if ( ! $locale ) {
 		// error_log( "setlocale() failed: none of  '" . join( ', ', $variants ) . "' does exist in this environment or setlocale() is not available on this platform" );
-		setlocale( LC_ALL, 0 );
+		$locale = setlocale( LC_ALL, 0 );
 		return 0;
 	}
 
 	bindtextdomain( $domain, './locales' );
 	textdomain( $domain );
+	return $locale;
 }
 
 function get_writable_tmp_dir() {
