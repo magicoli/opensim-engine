@@ -13,12 +13,46 @@ if (!defined('OPENSIM_ENGINE_PATH')) {
 class OpenSim {
     private static $instance = null;
 	private static $key;
+    private static $db;
+    private static $db_creds = null;
     
+    public function __construct() {
+        // Initialize any required properties or settings
+    }
+
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
+    }
+
+    public static function db() {
+        if( self::$db ) {
+            return self::$db;
+        }
+        if( self::$db === false ) {
+            // Don't check again if already failed
+            return false;
+        }
+
+        self::$db = false; // Reset to false to avoid multiple checks
+
+        self::$db_creds = Engine_Settings::get('robust.DatabaseService.ConnectionString', false);
+        error_log('[DEBUG] ' . __METHOD__ . ' Database credentials: ' . print_r(self::$db_creds, true));
+
+        if (self::$db_creds) {
+            self::$db = new OpenSim_Database(self::$db_creds);
+            if (self::$db->is_connected()) {
+                error_log('[DEBUG] ' . __METHOD__ . ' Database connection established.');
+                return self::$db;
+            } else {
+                error_log('[ERROR] ' . __METHOD__ . ' Database connection failed: ' . self::$db->get_error());
+                self::$db = false; // Set to false if connection fails
+            }
+        }
+
+        return self::$db;
     }
 
     /**

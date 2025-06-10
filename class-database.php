@@ -11,7 +11,7 @@ class OSPDO extends PDO {
     
     public function __construct($dsn, $username = null, $password = null, $driver_options = null) {
         // First handle the different attributes formatting
-		if ( OSHELPERS_DEBUG && OSHELPERS_DEBUG_DISPLAY ) {
+		if ( Engine_Settings::get( 'show_errors' ) ) {
 			$this->show_errors();
 		}
 
@@ -336,4 +336,17 @@ class OSPDO extends PDO {
 		
 		return implode(';', $parts) . ';';
 	}
+    
+    public function is_connected() {
+        return $this->connected;
+    }
+}
+
+/**
+ * OpenSim_Database class, alias of OSPDO
+ */
+class OpenSim_Database extends OSPDO {
+    public function __construct($dsn, $username = null, $password = null, $driver_options = null) {
+        parent::__construct($dsn, $username, $password, $driver_options);
+    }
 }

@@ -774,7 +774,11 @@ class OpenSim_Field {
                 // Show option description
                 if ($option_description) {
                     // $desc_margin= empty($sub_fields) ? 'mb-O' : 'mb-3';
-                    $html .= '<div class="' . $desc_margin . ' text-muted">' . opensim_sanitize_basic_html($option_description) . '</div>';
+                    $html .= sprintf(
+                        '<div class="%s text-muted">%s</div>',
+                        $desc_margin ?? '',
+                        opensim_sanitize_basic_html($option_description)
+                    );
                 }
 
                 foreach ($sub_fields as $sub_field_id => $sub_field_config) {
