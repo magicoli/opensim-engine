@@ -175,7 +175,16 @@ function opensim_sanitize_uri( $url, $gatekeeperURL = null, $array_outout = fals
 			$port = 8002;
 		}
 			$region = preg_replace( ':^/*:', '', @$split[0] );
+	} else if (!empty(OpenSim::login_uri())) {
+		$login_uri = OpenSim::login_uri();
+		$host   = parse_url( $login_uri, PHP_URL_HOST );
+		$port   = parse_url( $login_uri, PHP_URL_PORT );
+		if ( preg_match( '/^[0-9]+$/', $split[0] ) ) {
+			array_shift( $split );
+		}
+		$region = preg_replace( ':^/*:', '', @$split[0] );
 	} elseif ( function_exists( 'w4os_grid_login_uri' ) ) {
+		// DEPRECATED: use OpenSim::login_uri() instead
 		$host = parse_url( w4os_grid_login_uri(), PHP_URL_HOST );
 		$port = parse_url( w4os_grid_login_uri(), PHP_URL_HOST );
 		if ( preg_match( '/^[0-9]+$/', $split[0] ) ) {
@@ -442,11 +451,16 @@ function opensim_user_alert( $agentID, $message, $secureID = null ) {
  * @return array             received xml response
  */
 function oxXmlRequest( $gatekeeper, $method, $request ) {
+	if(! function_exists('xmlrpc_encode_request')) {
+		// Avoid crash but log error
+		error_log( '[ERROR] (php-xmlrpc missing) oxXmlRequest() requires xmlrpc_encode_request()' );
+		return false;
+	}
+	$enable_self_signed = Engine_Settings::get('engine.Beta.enable_self_signed', false);
+
 	$xml_request = xmlrpc_encode_request( $method, array( $request ) );
 
 	// Check if self-signed certificates should be accepted
-	$beta_options = w4os_get_option('beta', array());
-	$enable_self_signed = $beta_options['enable_self_signed'] ?? false;
 
 	$options = array(
 		'http' => array(
@@ -488,10 +502,12 @@ function get_xml_response_data( $requestURL, $request ) {
 	if(empty($request)) {
 		return array();
 	}
-
-	// Check if self-signed certificates should be accepted
-	$beta_options = w4os_get_option('beta', array());
-	$enable_self_signed = $beta_options['enable_self_signed'] ?? false;
+	if(! function_exists('xmlrpc_decode')) {
+		// Avoid crash but log error
+		error_log( '[ERROR] (php-xmlrpc missing) get_xml_response_data() requires xmlrpc_decode()' );
+		return false;
+	}
+	$enable_self_signed = Engine_Settings::get('engine.Beta.enable_self_signed', false);
 
 	$options = array(
 		'http' => array(
@@ -517,6 +533,64 @@ function get_xml_response_data( $requestURL, $request ) {
 	} else {
 		return array();
 	}
+}
+
+function fix_utf_encoding( $string ) {
+	// Ensure the string is in UTF-8 encoding
+	if ( ! mb_check_encoding( $string, 'UTF-8' ) ) {
+		$string = mb_convert_encoding( $string, 'UTF-8', 'ISO-8859-1' );
+	}
+	return $string;
+}
+
+/**
+ * Mimic OpenSim response for similar bad method calls.
+ * 
+ * Usually for one of these error codes, but any code can be used:
+ * - 405: Method Not Allowed
+ * - 418: I'm a teapot
+ */
+function die_knomes( $errorMessage = false, $errorCode = 405 ) {
+	if( empty( $errorMessage ) ) {
+		$errorMessage = _( 'The realm of destinations you seek has eluded our grasp, spirited away by elusive knomes. Rally the grid managers, let them venture forth to curate a grand tapestry of remarkable places for your exploration!' );
+	}
+	$locale = set_helpers_locale();
+	// Make sure message is UTF-8 encoded
+	if ( ! mb_check_encoding( $errorMessage, 'UTF-8' ) ) {
+		$errorMessage = mb_convert_encoding( $errorMessage, 'UTF-8', 'ISO-8859-1' );
+	}
+
+	// Add headers not sent yet, including UTF-8 and Content-Language
+	if ( ! headers_sent() ) {
+		header( 'HTTP/1.1 ' . $errorCode . ' ' . $errorMessage );
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		header( 'Content-Language: ' . $locale );
+	}
+	die( $errorMessage);
+}
+
+function caller_details($level = 2) {
+	// get calling function and file
+	$trace = debug_backtrace();
+	$level = isset( $trace[$level] ) ? $level : 1;
+	$caller = $trace[$level] ?? $trace[0];
+
+	$file     = empty( $caller['file'] ) ? '' : $caller['file'];
+	$function = ($level > 1) ? ($caller['function'] . '()' ?? '') :  '';
+	$line     = $caller['line'] ?? 0;
+	$class    = $caller['class'] ?? '';
+	$type     = $caller['type'] ?? '::';
+	if ( $function && $class ) {
+		$function = $class . $type . $function;
+	}
+	$file    = $file . ':' . $line;
+	return trim(sprintf(
+		'%s%s %s in %s',
+		$function,
+		empty( $caller['error_code'] ) ? '' : " Error {$caller['error_code']}",
+		$caller['message'] ?? '',
+		$file
+	));
 }
 
 function osXmlResponse( $success = true, $errorMessage = false, $data = false ) {
@@ -641,7 +715,10 @@ function set_helpers_locale( $locale = null, $domain = 'messages' ) {
 	if ( isset( $_GET['l'] ) ) {
 		$locale = $_GET['l'];
 	}
-	$languages = array_filter( array_merge( array( $locale ), explode( ',', $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) );
+	$languages = array_filter( array_merge( 
+		array( $locale ), 
+		explode( ',', $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '' ) 
+	));
 
 	// $results = putenv("LC_ALL=$locale");
 	// if (!$results) {
@@ -784,7 +861,7 @@ function parse_ini_file_decode( $filename, $process_sections = false, $scanner_m
 				}
 				// Decode dotnet ConnectionString format
 				if ( is_string( $value ) && preg_match( '/^(Data Source=.*;|Initial Catalog=.*;User ID=.*;)/', $value ) ) {
-					$ini_array[ $section ][ $key ] = Engine_Settings::connectionstring_to_array( $value );
+					$ini_array[ $section ][ $key ] = OSPDO::connectionstring_to_array( $value );
 				}
 
 			}

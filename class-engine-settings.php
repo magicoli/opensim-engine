@@ -676,7 +676,7 @@ class Engine_Settings {
             $ini_string .= "[{$section}]\n";
             
             foreach ($section_data as $key => $value) {
-                $ini_string .= $key . ' = ' . self::format_ini_value($value) . "\n";
+                $ini_string .= $key . ' = ' . self::format_ini_value($value, $key) . "\n";
             }
             
             $ini_string .= "\n"; // Empty line between sections
@@ -691,7 +691,7 @@ class Engine_Settings {
      * @param mixed $value Value to format
      * @return string Formatted value
      */
-    private static function format_ini_value($value) {
+    private static function format_ini_value($value, $key = '') {
         if (is_bool($value)) {
             return $value ? 'true' : 'false';
         }
@@ -701,19 +701,35 @@ class Engine_Settings {
         }
         
         if (is_array($value)) {
-            // Convert array to JSON for complex data
-            return '"' . addslashes(json_encode($value, JSON_UNESCAPED_SLASHES)) . '"';
-        }
-        
-        if (is_string($value)) {
-            // Quote strings that contain special characters
-            if (preg_match('/[;\[\]"\'=\s]/', $value)) {
-                return '"' . addslashes($value) . '"';
+            if(strpos($key, 'ConnectionString') !== false) {
+                $value = OSPDO::array_to_connectionstring($value);
+                // return '"' . addslashes($value) . '"';
             }
-            return $value;
+            error_log("[DEBUG] array value: $key = " . print_r($value, true));
+            // Convert array to JSON for complex data, ugly but should be ini compliant. Or not.
+            $value = json_encode($value, JSON_UNESCAPED_SLASHES);
         }
         
-        return (string)$value;
+        if(! is_string($value)) {
+            error_log("[ERROR] format_ini_value expected a string, got: " . print_r($value, true) . ' in ' . __FILE__ . ':' . __LINE__);    
+            return;
+            // // If it's not a string, convert it to string
+            // $value = (string)$value;
+        }
+
+        // Trim whitespace and quotes from start and end
+        $value = trim($value, " \n\r\t\v\x00\"'"); 
+
+        // Add slashes if value has characters that need escaping
+        if (strpos($value, '"') !== false || strpos($value, '\\') !== false) {
+            $value = addslashes($value);
+        }
+
+        // Quote return value if needed
+        if (preg_match('/[;\[\]"\'=\s]/', $value)) {
+            return '"' . $value . '"';
+        }
+        return $value;
     }
     
     /**
@@ -1006,7 +1022,7 @@ class Engine_Settings {
                     ),
                     'DestinationGuide' => array(
                         'type' => 'url',
-                        'label' => _('Destination Guide URL'),
+                        'label' => _('Destinations Guide URL'),
                         'description' => _('URL for the destination guide service.'),
                     ),
                     'DSTZone' => array(
@@ -1310,4 +1326,17 @@ class Engine_Settings {
     public static function using_imported_options() {
         return self::$imported_options !== null;
     }
+
+    /**
+     * Error log configuration migration required.
+     */
+    public static function log_migration_required() {
+        $backtrace = debug_backtrace();
+
+        error_log(
+            '[WARNING] Settings Migration required ' . caller_details()
+        );
+        // return false; // Indicate that migration is required
+    }
+    
 }
