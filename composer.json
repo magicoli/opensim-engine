@@ -24,5 +24,9 @@
     },
     "suggest": {
         "ezyang/htmlpurifier": "For advanced HTML sanitization if rich content is needed"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "classmap-authoritative": true
     }
 }
