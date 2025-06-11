@@ -1165,10 +1165,30 @@ class Engine_Settings {
                 ),
                 'Economy' => array(
                     'economymodule' => array(
-                        'type' => 'text',
+                        'type' => 'select',
                         'label' => _('Economy Module'),
+                        'options' => array(
+                            'BetaGridLikeMoneyModule' => _('Free transactions only'),
+                            'Gloebit' => _('Gloebit'),
+                            'DTLNSLMoneyModule' => _('Podex and other currency providers'),
+                        ),
                         'description' => _('Module used for the economy service.'),
                     ),
+    // CurrencyServer = "https://speculoos.world:8008/"
+    // UserServer = "${Const|BaseURL}:${Const|PublicPort}"
+                    'CurrencyServer' => array(
+                        'type' => 'url',
+                        'label' => _('Currency Server URL'),
+                        'placeholder' => 'https://yougrid.org:8008/',
+                        'description' => _('MoneyServer URL.'),
+                    ),
+                    'UserServer' => array(
+                        'type' => 'url',
+                        'label' => _('User Server URL'),
+                        'description' => _('Use.'),
+                    ),
+                    
+
                     'economy' => array(
                         'type' => 'url',
                         'label' => _('Economy URL'),
@@ -1255,7 +1275,161 @@ class Engine_Settings {
                 ),
             ),
             'moneyserver' => array(
+                'MoneyServer' => array(
+                    'Enabled' => array(
+                        'type' => 'checkbox',
+                        'label' => _('Enable Money Server'),
+                        'description' => _('Whether the Money Server is enabled.'),
+                        'default' => true,
+                    ),
+                    'ServerPort' => array(
+                        'type' => 'integer',
+                        'default' => 8008,
+                        'label' => _('Money Server Port'),
+                        'description' => _('Must not be used by or other services.'),
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'BankerAvatar' => array(
+                        'type' => 'uuid',
+                        'label' => _('Banker Avatar'),
+                        'description' => _('UUID of the banker for the Money Server. If "00000000-0000-0000-0000-000000000000" is specified, all avatars can get money from system. If empty, nobody can get money.'),
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'DefaultBalance' => array(
+                        'type' => 'integer',
+                        'label' => _('Default Balance'),
+                        'default' => 0,
+                        'description' => _('If the user is not found in database, they will be created with the default balance.'),
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'EnableAmountZero' => array(
+                        'type' => 'checkbox',
+                        'label' => _('Enable Zero Amount Transactions'),
+                        'description' => _('Whether to allow transactions with zero amount.'),
+                        'default' => false,
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'EnableForceTransfer' => array(
+                        'type' => 'checkbox',
+                        'label' => _('Enable Force Transfer'),
+                        'description' => _('Set to true to allow the use of llGiveMoney() when the payer is not logged in.'),
+                        'default' => true,
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'EnableScriptSendMoney' => array(
+                        'type' => 'checkbox',
+                        'label' => _('Enable Script Send Money'),
+                        'description' => _('Whether to allow currency helper to send money.'),
+                        'default' => true,
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'MoneyScriptAccessKey' => array(
+                        'type' => 'text',
+                        'label' => _('Script Key'),
+                        'description' => _('Key used for scripts to access the Money Server.'),
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    // // ScriptKey kept for reference only, probably obsolete.
+                    // 'ScriptKey' => array(
+                    //     'type' => 'text',
+                    //     'label' => _('Script Key'),
+                    //     'disabled' => true,
+                    //     'description' => _('Found in some snippets, instead of MoneyScriptAccessKey, but MoneyScriptAccessKey is probably the one to use.'),
+                    // ),
+                    'MoneyScriptIPaddress' => array(
+                        'type' => 'text',
+                        'label' => _('Script IP Address'),
+                        'readonly' => true,
+                        'description' => _('Used to generate Script key. Leave empty to use the server IP address.'),
+                        'condition' => array(
+                            'field' => 'MoneyServer.Enabled',
+                            'value' => true,
+                        ),
+                    ),
+                    'EnableHGAvatar' => array(
+                        'type' => 'checkbox',
+                        'label' => _('Enable Hypergrid Avatar'),
+                        'description' => _('Whether to allow hypergrid avatars to use the Money Server.'),
+                        'default' => true,
+                    ),
+                    'HGAvatarDefaultBalance' => array(
+                        'type' => 'integer',
+                        'label' => _('Hypergrid Avatar Default Balance'),
+                        'default' => 0,
+                        'description' => _('Default balance for hypergrid avatars.'),
+                        'condition' => array(
+                            array(
+                                'field' => 'MoneyServer.Enabled',
+                                'value' => true,
+                            ),
+                            array(
+                                'field' => 'EnableHGAvatar',
+                                'value' => true,
+                            ),
+                        ),
+                        'EnableGuestAvatar' => array(
+                            'type' => 'checkbox',
+                            'label' => _('Enable Guest Avatar'),
+                            'description' => _('Whether to allow guest avatars to use the Money Server.'),
+                            'default' => false,
+                        ),
+                        'GuestAvatarDefaultBalance' => array(
+                            'type' => 'integer',
+                            'label' => _('Guest Avatar Default Balance'),
+                            'default' => 0,
+                            'description' => _('Default balance for guest avatars.'),
+                            'condition' => array(
+                                array(
+                                    'field' => 'MoneyServer.Enabled',
+                                    'value' => true,
+                                ),
+                                array(
+                                    'field' => 'MoneEnableGuestAvatar',
+                                    'value' => true,
+                                ),
+                            ),
+                        ),
+                    ),
+                    // 'Rate' => array(
+                    //     'type' => 'float',
+                    //     'label' => _('Currency Rate'),
+                    //     'default' => 4.0, // 4/1000 is the most common rate
+                    //     'description' => _('Exchange rate for the currency used by the Money Server.'),
+                    // ),
+                    // 'RatePer' => array(
+                    //     'type' => 'integer',
+                    //     'label' => _('Rate Per'),
+                    //     'default' => 'USD',
+                    //     'description' => _('Currency unit for the exchange rate (e.g., USD, EUR).'),
+                    // ),
+                ),
                 'MySql' => array(
+                    // _condition applies to the whole section, not just the first field
+                    '_condition' => array(
+                        'field' => 'MoneyServer.Enabled',
+                        'value' => true,
+                    ),
                     'hostname' => array(
                         'type' => 'hostname',
                         'label' => _('MySQL server Hostname'),
@@ -1282,38 +1456,75 @@ class Engine_Settings {
                         'label' => _('MySQL Password'),
                         'description' => _('Password for the MySQL database used by the Money Server.'),
                     ),
-                ),
-                'MoneyServer' => array(
-                    'Enabled' => array(
+                    'pooling' => array(
                         'type' => 'checkbox',
-                        'label' => _('Enable Money Server'),
-                        'description' => _('Whether the Money Server is enabled.'),
-                        'default' => true,
+                        'label' => _('Connection Pooling'),
+                        'default' => false,
                     ),
-                    'BankerAvatar' => array(
-                        'type' => 'uuid',
-                        'label' => _('Banker Avatar'),
-                        'description' => _('UUID of the banker for the Money Server.'),
+                    'MaxConnection' => array(
+                        'type' => 'integer',
+                        'default' => 20,
+                        'label' => _('Max Connections'),
+                        'description' => _('Max DB connections kept by Money Server.'),
                     ),
-                    // Found both MoneyScriptAccessKey in some snippets, I think the good  one is MoneyScriptAccessKey
-                    // 'ScriptKey' => array(
-                    'MoneyScriptAccessKey' => array(
+                ),
+                'Certificate' => array(
+                    '_condition' => array(
+                        'field' => 'MoneyServer.Enabled',
+                        'value' => true,
+                    ),
+                    'CACertFilename' => array(
                         'type' => 'text',
-                        'label' => _('Script Key'),
-                        'description' => _('Key used for scripts to access the Money Server.'),
+                        'label' => _('CA Certificate Filename'),
+                        'description' => _('Path to the CA certificate file for client/server certificate verification.'),
                     ),
-                    // 'Rate' => array(
-                    //     'type' => 'float',
-                    //     'label' => _('Currency Rate'),
-                    //     'default' => 4.0, // 4/1000 is the most common rate
-                    //     'description' => _('Exchange rate for the currency used by the Money Server.'),
-                    // ),
-                    // 'RatePer' => array(
-                    //     'type' => 'integer',
-                    //     'label' => _('Rate Per'),
-                    //     'default' => 'USD',
-                    //     'description' => _('Currency unit for the exchange rate (e.g., USD, EUR).'),
-                    // ),
+                    'ServerCertFilename' => array(
+                        'type' => 'path',
+                        'label' => _('Server Certificate Filename'),
+                        'description' => _('Path to the server certificate file for HTTPS server mode (relative to MoneyServer.exe).'),
+                        'options' => array(
+                            'SineWaveCert.pfx' => 'SineWaveCert.pfx', // ServerCertPassword = "123"
+                            'server_cert.p12' => 'server_cert.p12', // ServerCertPassword = ""
+                        ),
+                    ),
+                    'ServerCertPassword' => array(
+                        'type' => 'password',
+                        'label' => _('Server Certificate Password'),
+                        'description' => _('Password for the server certificate file.'),
+                        'condition' => array(
+                            'field' => 'Certificate.ServerCertFilename',
+                            'not_empty' => true,
+                        ),
+                        
+                    ),
+                    'CheckClientCert' => array(
+                        'type' => 'checkbox',
+                        'label' => _('Check Client Certificate'),
+                        'default' => false,
+                        'description' => _('Client Authentication from Region Server.'),
+                    ),
+                    'ClientCrlFilename' => array(
+                        'type' => 'text',
+                        'label' => _('Client CRL Filename'),
+                        'description' => _('Path to the client CRL (Certificate Revocation List?) file.'),
+                        'options' => array(
+                            'clcrl.crt' => 'clcrl.crt', // Client Authentication from Region Server
+                            'client_cert.p12' => 'client_cert.p12', // XML RPC to Region Server (Client Mode)
+                        ),
+                        'condition' => array(
+                            'field' => 'Certificate.CheckClientCert',
+                            'value' => true,
+                        ),
+                    ),
+                    'ClientCertPassword' => array(
+                        'type' => 'password',
+                        'label' => _('Client Certificate Password'),
+                        'description' => _('Password for the client certificate file.'),
+                        'condition' => array(
+                            'field' => 'Certificate.ClientCertFilename',
+                            'value' => 'cient_cert.p12',
+                        ),
+                    ),
                 ),
             ),
         );
