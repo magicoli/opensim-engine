@@ -1138,6 +1138,13 @@ class Engine_Settings {
                         'description' => _('URL for the in-world search service.'),
                     ),
                 ),
+                'SimulatorFeatures' => array(
+                    'DestinationGuide' => array(
+                        'type' => 'url',
+                        'label' => _('Destination Guide URL'),
+                        'description' => _('URL for the destination guide service.'),
+                    ),
+                ),
                 'DataSnapshot' => array(
                     'gridname' => array(
                         'type' => 'text',
