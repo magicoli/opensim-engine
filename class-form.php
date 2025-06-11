@@ -684,7 +684,7 @@ class OpenSim_Form {
         $current_index = array_search($current_step_slug, $step_keys);
         
         $html = '<div class="multistep-progress mt-4">';
-        $html .= '<div class="step-indicators d-flex gap-2 align-items-stretch justify-content-evenly">';
+        $html .= '<div class="step-indicators d-flex align-items-stretch justify-content-evenly">';
 
         foreach( $step_keys as $index => $step_slug ) {
             $step_number = $index + 1;
@@ -704,7 +704,7 @@ class OpenSim_Form {
 
             $html .= sprintf(
                 '<div class="step-indicator d-flex flex-column flex-grow-1 align-self-start align-items-center justify-content-center %s" data-step="%s">
-                <div class="step-number %s">%d</div>
+                <div class="step-number mx-1 %s">%d</div>
                 <div class="step-title">%s</div>
                 </div>
                 ',
