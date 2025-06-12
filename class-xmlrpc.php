@@ -6,6 +6,12 @@
  * 
  * Currently for reference and evaluation only, not yet used in the project.
  * 
+ * Syntax must remains similar to php-xmlrpc extension, so that it can be used 
+ * as a drop-in replacement with few adjustments
+ * e.g.:
+ *       $request = OS_XMLRPC::xmlrpc_encode_request('method', ['param1']);
+ *       $response = OS_XMLRPC::xmlrpc_decode($result);
+ * 
  * https://php.watch/versions/8.0/xmlrpc
  * 
 **/
@@ -88,7 +94,3 @@ class OS_XMLRPC {
         return new PhpXmlRpc\Server();
     }
 }
-
-// Usage remains similar:
-// $request = OS_XMLRPC::xmlrpc_encode_request('method', ['param1']);
-// $response = OS_XMLRPC::xmlrpc_decode($result);
