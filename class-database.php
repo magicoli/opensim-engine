@@ -340,6 +340,30 @@ class OSPDO extends PDO {
     public function is_connected() {
         return $this->connected;
     }
+
+    public static function join_query_conditions($conditions, $glue = 'AND') {
+        if (empty($conditions)) {
+            return '';
+        }
+        
+        $glue = strtoupper(trim($glue));
+        if(! in_array($glue, array('AND', 'OR'))) {
+            // Stop execution if glue is not AND or OR, query result 
+            // would be unpredictable and could lead to SQL injection
+            throw new Exception('Invalid glue for query conditions: ' . $glue);
+        }
+
+        if (is_array($conditions)) {
+            $conditions = array_filter($conditions);
+            if (empty($conditions)) {
+                return '';
+            }
+            return implode(" $glue ", $conditions);
+        }
+
+        return $conditions;
+    }
+
 }
 
 /**

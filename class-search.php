@@ -14,19 +14,70 @@ class OpenSim_Search
     private static $events_table;
     private static $regions_table;
     private static $hypevents_url;
-    private function __construct()
-    {
+    private static $tables;
+
+    private function __construct() {
+        error_log('[DEBUG] ' . __METHOD__ . ' Initializing OpenSim Search Engine');
         // Initialize database connection
         self::db();
 
         // Set custom table names from settings
         self::$events_table = Engine_Settings::get('engine.Search.SearchEventsTable', 'events');
-        self::$regions_table = Engine_Settings::get('engine.Search.SearchRegionsTable', 'regions');
+        $this->fix_region_table_name();
 
-        if ( ! $SearchDB->tables_exist( array( SEARCH_REGION_TABLE, 'parcels', 'parcelsales', 'allparcels', 'objects', 'popularplaces', SEARCH_TABLE_EVENTS, 'classifieds', 'hostsregister' ) ) ) {
-            error_log( 'Creating missing OpenSimSearch tables in ' . SEARCH_DB_NAME );
-            ossearch_db_tables( $SearchDB );
+        self::$tables = array(
+            'allparcels',
+            'classifieds',
+            self::$events_table,
+            'objects',
+            'hostsregister',
+            'parcels',
+            'parcelsales',
+            'popularplaces',
+            self::$regions_table,
+        );
+
+        // Make sure tables exist
+        if ( ! self::$db->tables_exist( self::$tables ) ) {
+            error_log( 'Creating missing OpenSimSearch tables in search database' );
+            $this->create_tables();
         }
+
+        // DB update 1 add gatekeeperURL to existing tables
+        if ( ! count( self::$db->query( "SHOW COLUMNS FROM `parcels` LIKE 'gatekeeperURL'" )->fetchAll() ) ) {
+            $this->db_update_1();
+        }
+
+        // DB update 2 add imageUUID to parcels table
+        if ( ! count( self::$db->query( "SHOW COLUMNS FROM `parcels` LIKE 'imageUUID'" )->fetchAll() ) ) {
+            $this->db_update_2();
+        }
+    }
+
+    /**
+     * Fixes the region table name based on the database structure.
+     * 
+     * This method checks if the 'regions' table exists and has a 'uuid' column.
+     * If it does, it uses 'regionsregister' as the table name to avoid conflicts
+     * with OpenSim's robust regions table.
+     * If the 'regions' table does not exist or does not have the 'uuid' column,
+     * it uses 'regions' as the table name.
+     */
+    private function fix_region_table_name() {
+        if(! self::db()) {
+            error_log('[ERROR] ' . __METHOD__ . ' Database connection is not established.');
+            return false;
+        }
+
+        $regions_table = Engine_Settings::get('engine.Search.SearchRegionsTable', 'regions');
+
+        if($regions_table == 'regions' && self::$db->tables_exist( array( 'regions' ) ) ) {
+            $formatCheck   = self::$db->query( "SHOW COLUMNS FROM regions LIKE 'uuid'" );
+            $regions_table = ( $formatCheck->rowCount() == 0 ) ? $regions_table : 'regionsregister';
+        }
+
+        self::$regions_table = $regions_table;
+        return $regions_table;
     }
 
     public static function getInstance()
@@ -45,6 +96,7 @@ class OpenSim_Search
             // Don't check again if already failed
             return false;
         }
+        error_log('[DEBUG] ' . __METHOD__ . ' Establishing database connection');
 
         self::$db = false; // Reset to false to avoid multiple checks
 
@@ -54,29 +106,32 @@ class OpenSim_Search
         if (self::$db_creds) {
             self::$db = new OpenSim_Database(self::$db_creds);
         } else {
-            self::$db = OpenSim_Robust::db(); // Fallback to main database if SearchDB not configured
+            self::$db = OpenSim_Robust::db(); // Fallback to Robust database if SearchDB not configured
         }
 
-        if (self::$db->is_connected()) {
+        if (self::$db) {
             return self::$db;
-        } else {
-            error_log('[ERROR] ' . __METHOD__ . ' Database connection failed: ' . self::$db->get_error());
-            self::$db = false; // Set to false if connection fails
         }
+
+        error_log('[ERROR] ' . __METHOD__ . ' Database connection failed');
+        self::$db = false; // Set to false if connection fails
 
         return self::$db;
     }
 
-    private function check_tables() {
-        $db = self::db();
-        if ( ! $db->connected ) {
-            return false;
+    private function create_tables() {
+        if(! self::db() ) {
+            error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
+            return;
         }
+        error_log('[DEBUG] ' . __METHOD__ . ' Creating OpenSim Search Engine tables');
+        $db = self::$db;
 
         $table_events = self::$events_table;
-        $tables_regions = self::$regions_table;
+        $table_regions = self::$regions_table;
 
-        $query = $db->prepare(
+        // Split the large SQL into individual statements
+        $sql_statements = [
             "CREATE TABLE IF NOT EXISTS `allparcels` (
                 `regionUUID` char(36) NOT NULL,
                 `parcelname` varchar(255) NOT NULL,
@@ -89,9 +144,9 @@ class OpenSim_Search
                 `gatekeeperURL` varchar(255),
                 PRIMARY KEY  (`parcelUUID`),
                 KEY `regionUUID` (`regionUUID`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `classifieds` (
+            "CREATE TABLE IF NOT EXISTS `classifieds` (
                 `classifieduuid` char(36) NOT NULL,
                 `creatoruuid` char(36) NOT NULL,
                 `creationdate` int(20) NOT NULL,
@@ -108,9 +163,9 @@ class OpenSim_Search
                 `classifiedflags` int(8) NOT NULL,
                 `priceforlisting` int(5) NOT NULL,
                 PRIMARY KEY  (`classifieduuid`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `$table_events` (
+            "CREATE TABLE IF NOT EXISTS `$table_events` (
                 `owneruuid` char(36) NOT NULL,
                 `name` varchar(255) NOT NULL,
                 `eventid` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -126,13 +181,13 @@ class OpenSim_Search
                 `globalPos` varchar(255) NOT NULL,
                 `eventflags` int(1) NOT NULL,
                 `gatekeeperURL` varchar(255),
-                `landingpoint` varchar(35) DEFAULT NULL, -- JOpenSim compatibility
-                `parcelName` varchar(255) DEFAULT NULL, -- JOpenSim compatibility
-                `mature` enum('true','false') NOT NULL, -- JOpenSim compatibility
+                `landingpoint` varchar(35) DEFAULT NULL,
+                `parcelName` varchar(255) DEFAULT NULL,
+                `mature` enum('true','false') NOT NULL,
                 PRIMARY KEY (`eventid`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1",
 
-            CREATE TABLE IF NOT EXISTS `hostsregister` (
+            "CREATE TABLE IF NOT EXISTS `hostsregister` (
                 `host` varchar(255) NOT NULL,
                 `port` int(5) NOT NULL,
                 `register` int(10) NOT NULL,
@@ -141,9 +196,9 @@ class OpenSim_Search
                 `failcounter` int(10) NOT NULL,
                 `gatekeeperURL` varchar(255),
                 PRIMARY KEY (`host`,`port`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `objects` (
+            "CREATE TABLE IF NOT EXISTS `objects` (
                 `objectuuid` char(36) NOT NULL,
                 `parceluuid` char(36) NOT NULL,
                 `location` varchar(255) NOT NULL,
@@ -152,9 +207,9 @@ class OpenSim_Search
                 `regionuuid` char(36) NOT NULL default '',
                 `gatekeeperURL` varchar(255),
                 PRIMARY KEY  (`objectuuid`,`parceluuid`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `parcels` (
+            "CREATE TABLE IF NOT EXISTS `parcels` (
                 `parcelUUID` char(36) NOT NULL,
                 `regionUUID` char(36) NOT NULL,
                 `parcelname` varchar(255) NOT NULL,
@@ -174,9 +229,9 @@ class OpenSim_Search
                 KEY `description` (`description`),
                 KEY `searchcategory` (`searchcategory`),
                 KEY `dwell` (`dwell`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `parcelsales` (
+            "CREATE TABLE IF NOT EXISTS `parcelsales` (
                 `regionUUID` char(36) NOT NULL,
                 `parcelname` varchar(255) NOT NULL,
                 `parcelUUID` char(36) NOT NULL,
@@ -189,9 +244,9 @@ class OpenSim_Search
                 `mature` varchar(10) NOT NULL default 'PG',
                 `gatekeeperURL` varchar(255),
                 PRIMARY KEY  (`regionUUID`,`parcelUUID`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `popularplaces` (
+            "CREATE TABLE IF NOT EXISTS `popularplaces` (
                 `parcelUUID` char(36) NOT NULL,
                 `name` varchar(255) NOT NULL,
                 `dwell` float NOT NULL,
@@ -200,9 +255,9 @@ class OpenSim_Search
                 `mature` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
                 `gatekeeperURL` varchar(255),
                 PRIMARY KEY  (`parcelUUID`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
 
-            CREATE TABLE IF NOT EXISTS `$table_regions` (
+            "CREATE TABLE IF NOT EXISTS `$table_regions` (
                 `regionname` varchar(255) NOT NULL,
                 `regionUUID` char(36) NOT NULL,
                 `regionhandle` varchar(255) NOT NULL,
@@ -211,10 +266,99 @@ class OpenSim_Search
                 `owneruuid` char(36) NOT NULL,
                 `gatekeeperURL` varchar(255),
                 PRIMARY KEY  (`regionUUID`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-            "
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
+        ];
+
+        foreach ($sql_statements as $sql) {
+            try {
+                $result = $db->exec($sql);
+                if ($result === false) {
+                    error_log('[ERROR] ' . __METHOD__ . ' Failed to execute SQL: ' . $sql);
+                    return false;
+                }
+            } catch (Exception $e) {
+                error_log('[ERROR] ' . __METHOD__ . ' Exception executing SQL: ' . $e->getMessage());
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function db_update_1() {
+        if(! self::db() ) {
+            error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
+            return;
+        }
+        error_log('[DEBUG] ' . __METHOD__ . ' Adding gatekeeperURL column to existing tables');
+
+        foreach ( self::$tables as $table ) {
+            if ( ! count( self::$db->query( "SHOW COLUMNS FROM `$table` LIKE 'gatekeeperURL'" )->fetchAll() ) ) {
+                self::$db->query( "ALTER TABLE $table ADD gatekeeperURL varchar(255)" );
+            }
+        }
+    }
+
+    function ossearch_db_update_2() {
+        if(! self::db() ) {
+            error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
+            return;
+        }
+        error_log('[DEBUG] ' . __METHOD__ . ' Adding imageUUID column to parcels table');
+
+        if ( ! count( self::$db->query( "SHOW COLUMNS FROM `parcels` LIKE 'imageUUID'" )->fetchAll() ) ) {
+            self::$db->query( 'ALTER TABLE parcels ADD imageUUID char(36)' );
+        }
+    }
+
+    static function rating_flags_to_query( $flags, $table = '' ) {
+        if ( ! empty( $table ) ) {
+            $table = "$table.";
+        }
+
+        $terms = array();
+        if ( $flags & pow( 2, 24 ) ) {
+            $terms[] = "${table}mature = 'PG'";
+        }
+        if ( $flags & pow( 2, 25 ) ) {
+            $terms[] = "${table}mature = 'Mature'";
+        }
+        if ( $flags & pow( 2, 26 ) ) {
+            $terms[] = "${table}mature = 'Adult'";
+        }
+
+        return OSPDO::join_query_conditions($terms, 'OR');
+    }
+
+    public static function unregister_host( $hostname, $port ) {
+        // Ensure database connection is established
+        if(! self::db()) {
+            error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
+            return;
+        }
+        error_log('[DEBUG] ' . __METHOD__ . " Unregistering host: $hostname:$port");
+
+        self::$db->prepareAndExecute(
+            'DELETE FROM hostsregister
+        WHERE host = :host AND port = :port',
+            array(
+                'host' => $hostname,
+                'port' => $port,
+            )
         );
 
-        $result = $query->execute();        
+        $query = self::$db->prepareAndExecute( 'SELECT regionUUID FROM ' . self::$regions_table . ' WHERE url = ?', array( "http://$hostname:$port/" ) );
+        if ( $query ) {
+            $regions = $query->fetchAll();
+            foreach ( $regions as $region ) {
+                $regionUUID = $region[0];
+                self::$db->prepareAndExecute( 'DELETE pop FROM popularplaces AS pop INNER JOIN parcels AS par ON pop.parcelUUID = par.parcelUUID WHERE regionUUID = ?', array( $regionUUID ) );
+                self::$db->prepareAndExecute( 'DELETE FROM parcels WHERE regionUUID = ?', array( $regionUUID ) );
+                self::$db->prepareAndExecute( 'DELETE FROM allparcels WHERE regionUUID = ?', array( $regionUUID ) );
+                self::$db->prepareAndExecute( 'DELETE FROM parcelsales WHERE regionUUID = ?', array( $regionUUID ) );
+                self::$db->prepareAndExecute( 'DELETE FROM objects WHERE regionuuid = ?', array( $regionUUID ) );
+                self::$db->prepareAndExecute( 'DELETE FROM ' . self::$regions_table . ' WHERE regionUUID = ?', array( $regionUUID ) );
+            }
+        }
     }
 }
