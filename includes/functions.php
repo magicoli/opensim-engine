@@ -330,6 +330,11 @@ function opensim_link_region( $args, $var = null ) {
 	}
 	extract( $region_array ); // $host, $port, $region, $pos, $gatekeeper, $key
 
+	if(!service_available($host, $port)) {
+		error_log( '[ERROR] opensim_link_region() service not available: ' . $host . ':' . $port );
+		return array();
+	}
+
 	if ( isset( $OSSEARCH_CACHE['link_region'][ $key ] ) ) {
 		$link_region = $OSSEARCH_CACHE['link_region'][ $key ];
 	} else {
@@ -371,8 +376,12 @@ function opensim_get_region( $region_uri, $var = null ) {
 	$gatekeeper = $region['gatekeeper'];
 
 	$link_region = opensim_link_region( $region );
+	if(empty( $link_region ) || ! is_array( $link_region ) ) {
+		// error_log( "opensim_get_region $region_uri link_region failed" );
+		return array();
+	}
 
-	$uuid = @$link_region['uuid'];
+	$uuid = $link_region['uuid'] ?? false;
 	if ( ! is_uuid( $uuid ) ) {
 		// error_log( "opensim_get_region $region_uri invalid uuid $uuid" );
 		return array();
@@ -395,6 +404,39 @@ function opensim_get_region( $region_uri, $var = null ) {
 		}
 	}
 	return array();
+}
+
+/**
+ * Check service availability.
+ * 
+ * Make a fast socket connection to the given host and port.
+ * 
+ * @param  string $host   Hostname or IP address or URL, with or without port
+ * @param  int    $port   Port number, optional if included in $host
+ * @return boolean        True if the service is available, false otherwise
+ */
+function service_available( $host, $port = null ) {
+	if ( empty( $host ) ) {
+		return false;
+	}
+	if ( strpos( $host, ':' ) !== false ) {
+		$parts = explode( ':', $host );
+		$port  = array_pop( $parts );
+		$host  = implode( ':', $parts );
+	}
+	if ( empty( $port) || empty( $host ) ) {
+		error_log( '[ERROR] service_available() requires a valid host and port' );
+		return false;
+	}
+
+	$fp = @fsockopen( $host, $port, $errno, $errstr, 2 );
+	if ( ! $fp ) {
+		return new Exception( "Failed to connect to $host:$port - $errstr" );
+		// return false;
+	}
+
+	fclose( $fp );
+	return true;
 }
 
 /**
@@ -544,29 +586,113 @@ function fix_utf_encoding( $string ) {
 }
 
 /**
+ * Create a standardized response array for consistent project-wide usage
+ *
+ * @param bool $success Whether the operation was successful
+ * @param string $message Human-readable message
+ * @param mixed $data Optional data payload (for success responses)
+ * @param string $error_code Optional error code for programmatic handling
+ * @return array Standardized response structure
+ */
+function osResponseArray($success, $message, $data = null, $error_code = null) {
+	$response = [
+		'success' => (bool) $success,
+		'message' => $message,
+		'timestamp' => time()
+	];
+	
+	if ($success) {
+		if ($data !== null) {
+			$response['data'] = $data;
+		}
+	} else {
+		if ($error_code !== null) {
+			$response['error_code'] = $error_code;
+		}
+	}
+	
+	return $response;
+}
+
+/**
+ * Create a success response
+ *
+ * @param string $message Success message
+ * @param mixed $data Optional data payload
+ * @return array Success response
+ */
+function osSuccess($message, $data = null) {
+	return osResponseArray(true, $message, $data);
+}
+
+/**
+ * Create an error response
+ *
+ * @param string $message Error message
+ * @param int $error_code HTTP response code (also used as exit code)
+ * @return array Error response
+ */
+function osError($message, $error_code = 500) {
+	return osResponseArray(false, $message, null, $error_code);
+}
+
+/**
  * Mimic OpenSim response for similar bad method calls.
  * 
  * Usually for one of these error codes, but any code can be used:
  * - 405: Method Not Allowed
  * - 418: I'm a teapot
  */
-function die_knomes( $errorMessage = false, $errorCode = 405 ) {
-	if( empty( $errorMessage ) ) {
-		$errorMessage = _( 'The realm of destinations you seek has eluded our grasp, spirited away by elusive knomes. Rally the grid managers, let them venture forth to curate a grand tapestry of remarkable places for your exploration!' );
+function die_knomes( $error_message = false, $error_code = 405 ) {
+	if( empty( $error_message && $error_message !== false ) ) {
+		$error_message = _( 'The realm of destinations you seek has eluded our grasp, spirited away by elusive knomes. Rally the grid managers, let them venture forth to curate a grand tapestry of remarkable places for your exploration!' );
 	}
-	$locale = set_helpers_locale();
+
 	// Make sure message is UTF-8 encoded
-	if ( ! mb_check_encoding( $errorMessage, 'UTF-8' ) ) {
-		$errorMessage = mb_convert_encoding( $errorMessage, 'UTF-8', 'ISO-8859-1' );
+	if ( ! mb_check_encoding( $error_message, 'UTF-8' ) ) {
+		$error_message = mb_convert_encoding( $error_message, 'UTF-8', 'ISO-8859-1' );
 	}
 
 	// Add headers not sent yet, including UTF-8 and Content-Language
-	if ( ! headers_sent() ) {
-		header( 'HTTP/1.1 ' . $errorCode . ' ' . $errorMessage );
+	if ( php_sapi_name() !== 'cli' && ! headers_sent() ) {
+		$locale = set_helpers_locale();
+		header( 'HTTP/1.1 ' . $error_code . ' ' . $error_message );
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		header( 'Content-Language: ' . $locale );
 	}
-	die( $errorMessage);
+	die( $error_message);
+}
+
+/**
+ * Die silently with HTTP error_code and log the error message
+ */
+function osDie( $response = null, $error_code = null ) {
+	if ( is_array( $response ) ) {
+		$success = $response['success'] ?? false;
+		$error_code = $response['error_code'] ?? ($success ? 200 : 500);
+		$error_message = $response['message'] ?? ($success ? '' : 'Unexpected error occurred ' . $error_code);
+	} else if ( is_string( $response ) ) {
+		// success if no error_code or error code between 200 and 299
+		$success = empty( $error_code ) || ( $error_code >= 200 && $error_code < 300 );
+		$error_code = $error_code ?? ($success ? 200 : 500);
+		$error_message = $response;
+	} else if ( is_numeric( $response ) ) {
+		$success = empty( $error_code ) || ( $error_code >= 200 && $error_code < 300 );
+		$error_code = $response ?? ($success ? 200 : 500);
+		$error_message = $success ? '' : 'Unexpected error occurred ' . $error_code;
+	}
+
+	if ( php_sapi_name() !== 'cli' && ! headers_sent() ) {
+		$locale = set_helpers_locale();
+		header( 'HTTP/1.1 ' . $error_code . ' ' . $error_message );
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		header( 'Content-Language: ' . $locale );
+	}
+	if( ! empty( $error_message ) ) {
+		$message = $success ? $error_message : "[ERROR] $error_code $error_message";
+		error_log( $message );
+	}
+	die();
 }
 
 function caller_details($level = 2) {
@@ -593,12 +719,12 @@ function caller_details($level = 2) {
 	));
 }
 
-function osXmlResponse( $success = true, $errorMessage = false, $data = false ) {
+function osXmlResponse( $success = true, $error_message = false, $data = false ) {
 	global $request_key;
 
 	// Data given, output as xmlrpc
 	if ( is_array( $data ) ) {
-		if( ! $success && ! empty( $errorMessage ) ) {
+		if( ! $success && ! empty( $error_message ) ) {
 			# Avoid duplicate error messages
 			# TODO: improve to make sure we don't cache error messages for different requests
 			#	(currently $request_key only identifies search arguments, client IP and gateway url,
@@ -610,15 +736,15 @@ function osXmlResponse( $success = true, $errorMessage = false, $data = false ) 
 			$cache = $tmp_dir . '/cache-' . $request_key;
 			# Check if file exists and is not older than 5 seconds
 			if ( file_exists( $cache ) && ( time() - filemtime( $cache ) < 1.5 ) ) {
-				$errorMessage = '';
+				$error_message = '';
 			} else {
-				file_put_contents( $cache, $errorMessage );
+				file_put_contents( $cache, $error_message );
 			}
 		}
 
 		$array = array(
 			'success'      => $success,
-			'errorMessage' => $errorMessage,
+			'errorMessage' => $error_message,
 			'data'		 => $data,
 		);
 
@@ -632,7 +758,7 @@ function osXmlResponse( $success = true, $errorMessage = false, $data = false ) 
 	if ( $success ) {
 		$answer = new SimpleXMLElement( '<boolean>true</boolean>' );
 	} else {
-		$answer = new SimpleXMLElement( "<error>$errorMessage</error>" );
+		$answer = new SimpleXMLElement( "<error>$error_message</error>" );
 	}
 	echo $answer->asXML();
 }
@@ -684,14 +810,20 @@ function osAdminNotice( $message, $error_code = 0, $die = false ) {
  */
 function dontWait() {
 	$size = ob_get_length();
+	if( $size === null ) {
+		// No output buffer, nothing to flush
+		return;
+	}
 
 	header( "Content-Length:$size" );
 	header( 'Connection:close' );
 	header( 'Content-Encoding: none' );
 	header( 'Content-Type: text/html; charset=utf-8' );
 
-	ob_flush();
-	ob_end_flush();
+	if($size) {
+		ob_flush();
+		ob_end_flush();
+	}
 	flush();
 }
 

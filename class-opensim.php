@@ -40,10 +40,10 @@ class OpenSim {
         self::$db_creds = Engine_Settings::get('robust.DatabaseService.ConnectionString', false);
         if (self::$db_creds) {
             self::$db = new OpenSim_Database(self::$db_creds);
-            if (self::$db->is_connected()) {
+            if (self::$db && self::$db->is_connected()) {
                 return self::$db;
             } else {
-                error_log('[ERROR] ' . __METHOD__ . ' Database connection failed: ' . self::$db->get_error());
+                error_log('[ERROR] ' . __METHOD__ . ' Database connection failed');
                 self::$db = false; // Set to false if connection fails
             }
         }

@@ -17,7 +17,6 @@ class OpenSim_Search
     private static $tables;
 
     private function __construct() {
-        error_log('[DEBUG] ' . __METHOD__ . ' Initializing OpenSim Search Engine');
         // Initialize database connection
         self::db();
 
@@ -96,13 +95,12 @@ class OpenSim_Search
             // Don't check again if already failed
             return false;
         }
-        error_log('[DEBUG] ' . __METHOD__ . ' Establishing database connection');
 
         self::$db = false; // Reset to false to avoid multiple checks
 
         // Get SearchDB credentials from settings, fallback to main robust db
         self::$db_creds = Engine_Settings::get('engine.Search.SearchDB');
-
+        
         if (self::$db_creds) {
             self::$db = new OpenSim_Database(self::$db_creds);
         } else {
@@ -124,7 +122,8 @@ class OpenSim_Search
             error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
             return;
         }
-        error_log('[DEBUG] ' . __METHOD__ . ' Creating OpenSim Search Engine tables');
+        error_log('[NOTICE] ' . __METHOD__ . ' Update schema: creating missing search tables');
+
         $db = self::$db;
 
         $table_events = self::$events_table;
@@ -290,7 +289,7 @@ class OpenSim_Search
             error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
             return;
         }
-        error_log('[DEBUG] ' . __METHOD__ . ' Adding gatekeeperURL column to existing tables');
+        error_log('[NOTICE] ' . __METHOD__ . ' Update schema: add gatekeeperURL column to existing tables');
 
         foreach ( self::$tables as $table ) {
             if ( ! count( self::$db->query( "SHOW COLUMNS FROM `$table` LIKE 'gatekeeperURL'" )->fetchAll() ) ) {
@@ -304,7 +303,7 @@ class OpenSim_Search
             error_log('[ERROR] ' . __METHOD__ . ' Database connection failed.');
             return;
         }
-        error_log('[DEBUG] ' . __METHOD__ . ' Adding imageUUID column to parcels table');
+        error_log('[NOTICE] ' . __METHOD__ . ' Update schema: add imageUUID column to parcels table');
 
         if ( ! count( self::$db->query( "SHOW COLUMNS FROM `parcels` LIKE 'imageUUID'" )->fetchAll() ) ) {
             self::$db->query( 'ALTER TABLE parcels ADD imageUUID char(36)' );

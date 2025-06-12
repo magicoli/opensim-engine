@@ -4,17 +4,34 @@
  * 
  * Core database functionality that can be used by both WordPress and helpers.
  * This will contain all the database connection and query logic.
+ * 
+ * This class extends PDO and provides additional methods for common operations.
+ * 
+ * Accepts mixed arguments:
+ * - DSN string (e.g. 'mysql:host=localhost;dbname=mydb')
+ * - Array with credentials:
+ *   - 'user' => 'username'
+ *   - 'pass' => 'password'
+ *   - 'name' => 'database_name'
+ *   - 'host' => 'localhost'
+ *   - 'port' => 3306 (optional, defaults to 3306)
+ * - Single string with service URI (e.g. 'http://localhost:8002')
+ * 
+ * @package magicoli/opensim-helpers
+ * @since 3.0.0
  */
 
 class OSPDO extends PDO {
     public $connected = false;
+    public $db_name;
     
     public function __construct($dsn, $username = null, $password = null, $driver_options = null) {
-        // First handle the different attributes formatting
-		if ( Engine_Settings::get( 'show_errors' ) ) {
-			$this->show_errors();
+        // TODO: move this UI-related code in the closest UI calling class/function
+        if ( Engine_Settings::get( 'show_errors' ) ) {
+            $this->show_errors();
 		}
-
+        
+        // First handle the different attributes formatting
 		$args = func_get_args();
 		if ( count( $args ) == 1 && is_string( $args[0] ) ) {
 			// If a single string is passed, assume it's service URI.
@@ -24,6 +41,7 @@ class OSPDO extends PDO {
 
 			$db_enabled = $credentials['db']['enabled'] ?? false;
 			if ( ! $db_enabled ) {
+                $this->connected = false;
 				return false;
 			}
 
@@ -38,14 +56,14 @@ class OSPDO extends PDO {
 				array(
 					'user'     => null,
 					'pass'     => null,
-					'database' => null,
+					'name' => null,
 					'host'     => null,
 					'port'     => null,
 				)
 			);
 			$username     = $credentials['user'];
 			$password  = $credentials['pass'];
-			$dbname      = $credentials['database'];
+			$dbname      = $credentials['name'];
 			$dbhost      = $credentials['host'] . ( empty( $credentials['port'] ) ? '' : ':' . $credentials['port'] );
 		} else {
             // split $dsn string formatted as 'mysql:host=$dbhost;dbname=$dbname' into $dbhost and $dbname
@@ -57,21 +75,26 @@ class OSPDO extends PDO {
             $credentials = array(
                 'user' => $username,
                 'pass' => $password,
-                'database' => $dbname,
+                'name' => $dbname,
                 'host' => $dbhost,
             );
         }
 
-		// Actual db_connect() attempt can take forever is remote connection is not allowed.
-		// So, we should first make a quick test to verify the remote port is accessible
-		// before attempting to connect to the database.
+        if( empty($dbname)) {
+            error_log("Database name is empty, aborting connection to $dsn");
+            throw new Exception("Database name is empty, cannot connect to $dsn");
+        }
 
+		// Fast connection check before attempting lengthy PDO connection
+        // TODO: make connection check a global OpenSim method for any kind of service connection
 		$url_parts = parse_url( $dbhost );
 		$test_host = $url_parts['host'] ?? $url_parts['path'] ?? 'localhost';
 		$test_port = $url_parts['port'] ?? 3306;
-		$socket    = @fsockopen( $test_host, $test_port, $errno, $errstr, 1 );
-		if ( ! $socket ) {
-			throw new Exception( "Failed to connect to the database server: $errstr" );
+		// $socket    = @fsockopen( $test_host, $test_port, $errno, $errstr, 1 );
+		// if ( ! $socket ) {
+        $connection_test = service_available($test_host, $test_port);
+        if(!service_available($test_host, $test_port))  {
+			throw new Exception( "Failed to connect to the database server: " . print_r($connection_test, true) );
 		}
         
         $dsn = 'mysql:host=' . $dbhost . ';dbname=' . $dbname;
@@ -80,10 +103,21 @@ class OSPDO extends PDO {
             @parent::__construct($dsn, $username, $password, $driver_options);
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->connected = true;
+            // DEBUG check if the db is really connected
+            if ($this->connected) {
+                try {
+                    $this->query("SELECT 1");
+                    $this->db_name = $dbname;
+                } catch (PDOException $e) {
+                    error_log("Database connection failed: " . $e->getMessage());
+                    $this->connected = false;
+                }
+            }
         } catch (PDOException $e) {
             error_log("Could not connect to database $dsn as $username");
             $this->connected = false;
         }
+
     }
 
     /**
@@ -102,7 +136,7 @@ class OSPDO extends PDO {
         $result = $statement->execute($params);
 
         if ($result) {
-            return $statement;
+            return $result;
         }
 
         error_log('Error ' . $statement->errorCode() . ' ' . $statement->errorInfo()[2] . ' ' . $trace);
