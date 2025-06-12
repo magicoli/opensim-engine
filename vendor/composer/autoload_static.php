@@ -15,6 +15,7 @@ class ComposerStaticInit074bd3f0858773e24fb884cb798e3445
         'P' => 
         array (
             'Psr\\Container\\' => 14,
+            'PhpXmlRpc\\' => 10,
         ),
         'O' => 
         array (
@@ -33,6 +34,10 @@ class ComposerStaticInit074bd3f0858773e24fb884cb798e3445
         'Psr\\Container\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/container/src',
+        ),
+        'PhpXmlRpc\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src',
         ),
         'OpenSim\\Engine\\' => 
         array (
@@ -226,6 +231,38 @@ class ComposerStaticInit074bd3f0858773e24fb884cb798e3445
         'Laminas\\Stdlib\\StringWrapper\\MbString' => __DIR__ . '/..' . '/laminas/laminas-stdlib/src/StringWrapper/MbString.php',
         'Laminas\\Stdlib\\StringWrapper\\Native' => __DIR__ . '/..' . '/laminas/laminas-stdlib/src/StringWrapper/Native.php',
         'Laminas\\Stdlib\\StringWrapper\\StringWrapperInterface' => __DIR__ . '/..' . '/laminas/laminas-stdlib/src/StringWrapper/StringWrapperInterface.php',
+        'PhpXmlRpc\\Autoloader' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Autoloader.php',
+        'PhpXmlRpc\\Client' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Client.php',
+        'PhpXmlRpc\\Encoder' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Encoder.php',
+        'PhpXmlRpc\\Exception' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception.php',
+        'PhpXmlRpc\\Exception\\FaultResponseException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/FaultResponseException.php',
+        'PhpXmlRpc\\Exception\\HttpException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/HttpException.php',
+        'PhpXmlRpc\\Exception\\NoSuchMethodException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/NoSuchMethodException.php',
+        'PhpXmlRpc\\Exception\\ParsingException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/ParsingException.php',
+        'PhpXmlRpc\\Exception\\ServerException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/ServerException.php',
+        'PhpXmlRpc\\Exception\\StateErrorException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/StateErrorException.php',
+        'PhpXmlRpc\\Exception\\TransportException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/TransportException.php',
+        'PhpXmlRpc\\Exception\\TypeErrorException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/TypeErrorException.php',
+        'PhpXmlRpc\\Exception\\ValueErrorException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/ValueErrorException.php',
+        'PhpXmlRpc\\Exception\\XmlException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/XmlException.php',
+        'PhpXmlRpc\\Exception\\XmlRpcException' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Exception/XmlRpcException.php',
+        'PhpXmlRpc\\Helper\\Charset' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Helper/Charset.php',
+        'PhpXmlRpc\\Helper\\Date' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Helper/Date.php',
+        'PhpXmlRpc\\Helper\\Http' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Helper/Http.php',
+        'PhpXmlRpc\\Helper\\Interop' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Helper/Interop.php',
+        'PhpXmlRpc\\Helper\\Logger' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Helper/Logger.php',
+        'PhpXmlRpc\\Helper\\XMLParser' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Helper/XMLParser.php',
+        'PhpXmlRpc\\PhpXmlRpc' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/PhpXmlRpc.php',
+        'PhpXmlRpc\\Request' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Request.php',
+        'PhpXmlRpc\\Response' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Response.php',
+        'PhpXmlRpc\\Server' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Server.php',
+        'PhpXmlRpc\\Traits\\CharsetEncoderAware' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Traits/CharsetEncoderAware.php',
+        'PhpXmlRpc\\Traits\\DeprecationLogger' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Traits/DeprecationLogger.php',
+        'PhpXmlRpc\\Traits\\LoggerAware' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Traits/LoggerAware.php',
+        'PhpXmlRpc\\Traits\\ParserAware' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Traits/ParserAware.php',
+        'PhpXmlRpc\\Traits\\PayloadBearer' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Traits/PayloadBearer.php',
+        'PhpXmlRpc\\Value' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Value.php',
+        'PhpXmlRpc\\Wrapper' => __DIR__ . '/..' . '/phpxmlrpc/phpxmlrpc/src/Wrapper.php',
         'Psr\\Container\\ContainerExceptionInterface' => __DIR__ . '/..' . '/psr/container/src/ContainerExceptionInterface.php',
         'Psr\\Container\\ContainerInterface' => __DIR__ . '/..' . '/psr/container/src/ContainerInterface.php',
         'Psr\\Container\\NotFoundExceptionInterface' => __DIR__ . '/..' . '/psr/container/src/NotFoundExceptionInterface.php',

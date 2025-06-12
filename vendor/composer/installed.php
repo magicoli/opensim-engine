@@ -3,11 +3,11 @@
         'name' => 'magicoli/opensim-engine',
         'pretty_version' => '3.x-dev',
         'version' => '3.9999999.9999999.9999999-dev',
-        'reference' => '14578bbdbe158990aa83a1285dbe5fe435f27304',
+        'reference' => '5b5aae920ffddb320eb28b2b72a39d88df24a0a9',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => false,
+        'dev' => true,
     ),
     'versions' => array(
         'container-interop/container-interop' => array(
@@ -55,9 +55,18 @@
         'magicoli/opensim-engine' => array(
             'pretty_version' => '3.x-dev',
             'version' => '3.9999999.9999999.9999999-dev',
-            'reference' => '14578bbdbe158990aa83a1285dbe5fe435f27304',
+            'reference' => '5b5aae920ffddb320eb28b2b72a39d88df24a0a9',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'phpxmlrpc/phpxmlrpc' => array(
+            'pretty_version' => '4.11.1',
+            'version' => '4.11.1.0',
+            'reference' => '06b9d7275d637f6859527091a54a5edfe8a16749',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpxmlrpc/phpxmlrpc',
             'aliases' => array(),
             'dev_requirement' => false,
         ),

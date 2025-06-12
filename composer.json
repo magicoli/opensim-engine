@@ -12,7 +12,8 @@
     "require": {
         "php": ">=7.4",
         "laminas/laminas-escaper": "^2.12",
-        "laminas/laminas-filter": "^2.24"
+        "laminas/laminas-filter": "^2.24",
+        "phpxmlrpc/phpxmlrpc": "^4.11"
     },
     "autoload": {
         "psr-4": {
