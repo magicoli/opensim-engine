@@ -36,9 +36,28 @@ spl_autoload_register(function ($class) {
     }
 });
 
+# This doesn't work and requires more investigation. Commented and kept for future reference.
+# In the meantime, we keep our dependency to php-xmlrpc extension
+// if (!function_exists('xmlrpc_encode') || !function_exists('xmlrpc_server_create')) { 
+//     error_log('[DEBUG] xmlrpc_server_create: ' . ( function_exists('xmlrpc_server_create') ? 'exists' : 'not exists' ));
+    
+//     // require_once OPENSIM_ENGINE_PATH . '/includes/library-xmlrpc.php';
+
+//     require_once OPENSIM_ENGINE_PATH . '/vendor/phpxmlrpc/phpxmlrpc/lib/xmlrpc.inc';
+//     require_once OPENSIM_ENGINE_PATH . '/vendor/phpxmlrpc/phpxmlrpc/lib/xmlrpcs.inc';
+//     require_once OPENSIM_ENGINE_PATH . '/vendor/phpxmlrpc/phpxmlrpc/lib/xmlrpc_wrappers.inc';
+//     error_log('[DEBUG] xmlrpc_server_create: ' . ( function_exists('xmlrpc_server_create') ? 'exists' : 'not exists' ));
+    
+//     // Not sure if we need set encoding, does xmlrcp default ISO-8859-1 affect anything?
+//     // $GLOBALS['xmlrpc_internalencoding'] = 'UTF-8';
+//     // PhpXmlRpc\PhpXmlRpc::importGlobals(); // Needed if setting $GLOBALS['xmlrpc_internalencoding']
+
+// }
+
 // Load ONLY essential dependencies that are always needed
 require_once OPENSIM_ENGINE_PATH . '/opensim-rest/class-rest.php';
 require_once OPENSIM_ENGINE_PATH . '/includes/functions.php';
+// Load XML-RPC compatibility layer if the extension is not available
 
 // Load ONLY core classes that are always used
 // require_once OPENSIM_ENGINE_PATH . '/class-ini.php';
@@ -55,12 +74,6 @@ require_once OPENSIM_ENGINE_PATH . '/class-database.php';
 // if (file_exists($helpers_path . '/classes/class-error.php')) {
 //     require_once $helpers_path . '/classes/class-error.php';
 // }
-
-// require_once OPENSIM_ENGINE_PATH . '/class-avatar.php';
-// require_once OPENSIM_ENGINE_PATH . '/class-region.php';
-// require_once OPENSIM_ENGINE_PATH . '/class-search.php';
-// require_once OPENSIM_ENGINE_PATH . '/class-economy.php';
-// require_once OPENSIM_ENGINE_PATH . '/class-grid.php';
 
 // Initialize settings system
 Engine_Settings::init();

@@ -1,10 +1,10 @@
 <?php
 /**
- * economy.php
+ * helpers/engine/includes/functions.php
  *
- * Provides functions required by helpers
+ * Provides functions for OpenSim scripts.
  *
- * @package     magicoli/opensim-helpers
+ * @package     magicoli/opensim-engine
  * @author      Gudule Lapointe <gudule@speculoos.world>
  * @link            https://github.com/magicoli/opensim-helpers
  * @license     AGPLv3
@@ -74,6 +74,47 @@ function escape_url($url) {
 function do_not_sanitize($string, $foo='', $bar='', $john='', $doe='' ) {
 	return $string;
 }
+
+function php_has( $extension ) {
+	switch($extension) {
+		case 'php':
+			return true; // PHP is always loaded
+		case 'php7':
+			return version_compare( PHP_VERSION, '7.0', '>=' );	
+		case 'php7.4':
+			return version_compare( PHP_VERSION, '7.4', '>=' );
+		case 'php8.0':
+			return version_compare( PHP_VERSION, '8.0', '>=' );
+		case 'curl':
+			return function_exists( 'curl_init' );
+		case 'intl':
+			return function_exists( 'transliterator_transliterate' );
+		case 'xmlrpc':
+			$trace = debug_backtrace();
+			$caller_function = $trace[1]['function'] ?? '';
+			$caller_function .= $caller_function  ? '()' : '';
+			$caller_file = $trace[1]['file'] ?? '';
+			$caller_line = $trace[1]['line'] ?? '';
+			$has = function_exists( 'xmlrpc_encode' ) || class_exists( '\\PhpXmlRpc\\Value' );
+			error_log( "[DEBUG] $caller_function wants $extension, I said " . ($has ? 'yes' : 'no') . " (from $caller_file:$caller_line)" );
+			return $has;
+			// return function_exists( 'xmlrpc_encode' ) || class_exists( '\\PhpXmlRpc\\Value' );
+			// return function_exists( 'xmlrpc_encode_request' );
+		case 'imagick':
+			return class_exists( 'Imagick' ) || class_exists( 'ImagickDraw' ) || class_exists( 'ImagickPixel' );
+		case 'json':
+			return function_exists( 'json_encode' );
+		case 'mbstring':
+			return function_exists( 'mb_convert_encoding' );
+		case 'simplexml':
+			return function_exists( 'simplexml_load_string' );
+		default:
+			// For any other extension, we can use the extension_loaded function
+			return extension_loaded( $extension );
+	}
+	return false;
+}
+
 
 /**
  * Sanitize a string to be used as an ID or slug, like for html container id, css class, etc.
@@ -493,9 +534,9 @@ function opensim_user_alert( $agentID, $message, $secureID = null ) {
  * @return array             received xml response
  */
 function oxXmlRequest( $gatekeeper, $method, $request ) {
-	if(! function_exists('xmlrpc_encode_request')) {
+	if(! php_has('xmlrpc') ) {
 		// Avoid crash but log error
-		error_log( '[ERROR] (php-xmlrpc missing) oxXmlRequest() requires xmlrpc_encode_request()' );
+		error_log( '[ERROR] (XML RPC missing) oxXmlRequest() requires xmlrpc_encode_request()' );
 		return false;
 	}
 	$enable_self_signed = Engine_Settings::get('engine.Beta.enable_self_signed', false);
@@ -546,7 +587,7 @@ function get_xml_response_data( $requestURL, $request ) {
 	}
 	if(! function_exists('xmlrpc_decode')) {
 		// Avoid crash but log error
-		error_log( '[ERROR] (php-xmlrpc missing) get_xml_response_data() requires xmlrpc_decode()' );
+		error_log( '[ERROR] (XML RPC missing) get_xml_response_data() requires xmlrpc_decode()' );
 		return false;
 	}
 	$enable_self_signed = Engine_Settings::get('engine.Beta.enable_self_signed', false);
