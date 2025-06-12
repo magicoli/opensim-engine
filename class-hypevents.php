@@ -153,8 +153,8 @@ class OpenSim_HypEvents {
         error_log( '[NOTICE] ' . __METHOD__ . ' fetched ' . count( $raw_events ) . ' events.' );
         
         // Dev only: shrink for testing
-        $raw_events = array_slice( $raw_events, 0, 5 ); // DEBUG
-        error_log('[WARNING] ' . __METHOD__ . ' processing only ' . count( $raw_events ) . ' events for testing purposes.' );
+        // $raw_events = array_slice( $raw_events, 0, 5 );
+        // error_log('[WARNING] ' . __METHOD__ . ' processing only ' . count( $raw_events ) . ' events for testing purposes.' );
 
         // Process each event (this is the most time-consuming part)
         $start_time = microtime( true );
