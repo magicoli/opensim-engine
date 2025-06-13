@@ -90,16 +90,8 @@ function php_has( $extension ) {
 		case 'intl':
 			return function_exists( 'transliterator_transliterate' );
 		case 'xmlrpc':
-			$trace = debug_backtrace();
-			$caller_function = $trace[1]['function'] ?? '';
-			$caller_function .= $caller_function  ? '()' : '';
-			$caller_file = $trace[1]['file'] ?? '';
-			$caller_line = $trace[1]['line'] ?? '';
-			$has = function_exists( 'xmlrpc_encode' ) || class_exists( '\\PhpXmlRpc\\Value' );
-			error_log( "[DEBUG] $caller_function wants $extension, I said " . ($has ? 'yes' : 'no') . " (from $caller_file:$caller_line)" );
-			return $has;
+			return function_exists( 'xmlrpc_encode' );
 			// return function_exists( 'xmlrpc_encode' ) || class_exists( '\\PhpXmlRpc\\Value' );
-			// return function_exists( 'xmlrpc_encode_request' );
 		case 'imagick':
 			return class_exists( 'Imagick' ) || class_exists( 'ImagickDraw' ) || class_exists( 'ImagickPixel' );
 		case 'json':
