@@ -695,6 +695,9 @@ class Engine_Settings {
         if (is_bool($value)) {
             return $value ? 'true' : 'false';
         }
+        if ($value === null) {
+            return;
+        }
         
         if (is_numeric($value)) {
             return (string)$value;
@@ -705,14 +708,13 @@ class Engine_Settings {
                 $value = OSPDO::array_to_connectionstring($value);
                 // return '"' . addslashes($value) . '"';
             }
-            error_log("[DEBUG] array value: $key = " . print_r($value, true));
             // Convert array to JSON for complex data, ugly but should be ini compliant. Or not.
             $value = json_encode($value, JSON_UNESCAPED_SLASHES);
         }
         
         if(! is_string($value)) {
-            error_log("[ERROR] format_ini_value expected a string, got: " . print_r($value, true) . ' in ' . __FILE__ . ':' . __LINE__);    
-            return;
+            error_log("[WARNING] format_ini_value expected a string, got: " . json_encode($value) . ' in ' . __FILE__ . ':' . __LINE__);    
+            return $value;
             // // If it's not a string, convert it to string
             // $value = (string)$value;
         }
