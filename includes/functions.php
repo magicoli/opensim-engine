@@ -796,7 +796,13 @@ function osXmlResponse( $success = true, $error_message = false, $data = false )
 	echo $answer->asXML();
 }
 
-function osXmlDie( $message = '' ) {
+function osXmlDie( $message = '', $error_code = null ) {
+	if( $error_code !== null && php_sapi_name() !== 'cli' && ! headers_sent() ) {
+		$locale = set_helpers_locale();
+		header( 'HTTP/1.1 ' . $error_code . ' ' . $message );
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		header( 'Content-Language: ' . $locale );
+	}
 	osXmlResponse( false, $message, array() );
 	die;
 }
@@ -1034,6 +1040,30 @@ function parse_ini_file_decode( $filename, $process_sections = false, $scanner_m
 	}
 
 	return $ini_array;
+}
+
+function isSuccess( $response ) {
+	if ( $response === true || $response === false ) {
+		return $response;
+	}
+	if ( is_array( $response ) ) {
+		return ! empty( $response['success'] ) && $response['success'] === true;
+	} elseif ( is_string( $response ) ) {
+		if( in_array(strtolower($response), array('true', 'success', 'ok', 'yes', '1'), true) ) {
+			return true;
+		}
+		if( in_array(strtolower($response), array('false', 'error', 'fail', 'no', '0'), true) ) {
+			return false;
+		}
+		return ! empty( $response );
+	} elseif ( is_numeric( $response ) ) {
+		return $response == 1 || ($response >= 200 && $response < 300);
+	}
+	return false;
+}
+
+function isError( $response ) {
+	return ! isSuccess( $response );
 }
 
 /**
