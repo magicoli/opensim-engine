@@ -90,9 +90,8 @@ function php_has( $extension ) {
 		case 'intl':
 			return function_exists( 'transliterator_transliterate' );
 		case 'xmlrpc':
+			return function_exists( 'xmlrpc_encode' );
 			// return function_exists( 'xmlrpc_encode' ) || class_exists( '\\PhpXmlRpc\\Value' );
-			// return function_exists( 'xmlrpc_encode' ) || class_exists( '\\PhpXmlRpc\\Value' );
-			return function_exists( 'xmlrpc_encode_request' );
 		case 'imagick':
 			return class_exists( 'Imagick' ) || class_exists( 'ImagickDraw' ) || class_exists( 'ImagickPixel' );
 		case 'json':
