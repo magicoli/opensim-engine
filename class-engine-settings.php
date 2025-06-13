@@ -930,6 +930,19 @@ class Engine_Settings {
                     ),
                 ),
                 'Economy' => array(
+                    'provider' => array(
+                        'type' => 'select',
+                        'label' => _('Currency Provider'),
+                        'options' => array(
+                            '' => _('None (no economy at all)'),
+                            'free' => _('Free (no real transactions, required to allow land ownership)'),
+                            'gloebit' => _('Gloebit'),
+                            'podex' => _('Podex (with MoneyServer module'),
+                            'moneyserver' => _('MoneyServer (with other currency provider)'),
+                        ),
+                        'default' => '',
+                        'description' => _('Currency provider for the OpenSim economy.'),
+                    ),
                     'CurrencyMoneyTable' => array(
                         'type' => 'text',
                         'label' => _('Currency Money Table'),
