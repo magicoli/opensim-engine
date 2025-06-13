@@ -32,7 +32,7 @@ if(!php_has('curl')) {
 if ( defined( 'CURRENCY_DB_HOST' ) ) {
 	$CurrencyDB = new OSPDO( 'mysql:host=' . CURRENCY_DB_HOST . ';dbname=' . CURRENCY_DB_NAME, CURRENCY_DB_USER, CURRENCY_DB_PASS );
 } else {
-	$CurrencyDB = &$OpenSimDB;
+	$CurrencyDB = &$robust_db;
 }
 
 function noserver_save_transaction( $sourceId, $destId, $amount, $type, $flags, $desc, $prminvent, $nxtowner, $ip ) {
@@ -485,12 +485,15 @@ function currency_xmlrpc_call( $host, $port, $uri, $request ) {
  * scripts, so I leave them here, hence the opensim_ prefix.
  */
 function opensim_get_avatar_session( $agentID, &$deprecated = null ) {
-	global $OpenSimDB;
+	$robust_db = OpenSim_Robust::db();
+	if ( ! $robust_db ) {
+		return false;
+	}
 	if ( ! is_uuid( $agentID ) ) {
 		return null;
 	}
 
-	$result = $OpenSimDB->query( "SELECT RegionID,SessionID,SecureSessionID FROM Presence WHERE UserID='$agentID'" );
+	$result = $robust_db->query( "SELECT RegionID,SessionID,SecureSessionID FROM Presence WHERE UserID='$agentID'" );
 	if ( $result ) {
 		list($RegionID, $SessionID, $SecureSessionID) = $result->fetch();
 	} else {
@@ -505,14 +508,17 @@ function opensim_get_avatar_session( $agentID, &$deprecated = null ) {
 }
 
 function opensim_set_current_region( $agentID, $regionid, &$deprecated = null ) {
-	global $OpenSimDB;
+	$robust_db = OpenSim_Robust::db();
+	if ( ! $robust_db ) {
+		return false;
+	}
 
 	if ( ! is_uuid( $agentID ) or ! is_uuid( $regionid ) ) {
 		return false;
 	}
 
 	$sql    = "UPDATE Presence SET RegionID='$regionid' WHERE UserID='$agentID'";
-	$result = $OpenSimDB->query( $sql );
+	$result = $robust_db->query( $sql );
 	if ( ! $result ) {
 		return false;
 	}
@@ -520,12 +526,15 @@ function opensim_set_current_region( $agentID, $regionid, &$deprecated = null ) 
 }
 
 function opensim_get_server_info( $userid, &$deprecated = null ) {
-	global $OpenSimDB;
+	$robust_db = OpenSim_Robust::db();
+	if ( ! $robust_db ) {
+		return false;
+	}
 	if ( ! is_uuid( $userid ) ) {
 		return array();
 	}
 
-	$result = $OpenSimDB->query(
+	$result = $robust_db->query(
 		"SELECT serverIP,serverHttpPort,serverURI,regionSecret
     FROM GridUser INNER JOIN regions ON regions.uuid=GridUser.LastRegionID
     WHERE GridUser.UserID='$userid'"
@@ -544,7 +553,10 @@ function opensim_get_server_info( $userid, &$deprecated = null ) {
 }
 
 function opensim_check_secure_session( $agentID, $regionid, $secure, &$deprecated = null ) {
-	global $OpenSimDB;
+	$robust_db = OpenSim_Robust::db();
+	if ( ! $robust_db ) {
+		return false;
+	}
 	if ( ! is_uuid( $agentID ) or ! is_uuid( $secure ) ) {
 		return false;
 	}
@@ -554,7 +566,7 @@ function opensim_check_secure_session( $agentID, $regionid, $secure, &$deprecate
 		$sql = $sql . " AND RegionID='$regionid'";
 	}
 
-	$result = $OpenSimDB->query( $sql );
+	$result = $robust_db->query( $sql );
 	if ( ! $result ) {
 		return false;
 	}
@@ -567,12 +579,15 @@ function opensim_check_secure_session( $agentID, $regionid, $secure, &$deprecate
 }
 
 function opensim_check_region_secret( $regionID, $secret, &$deprecated = null ) {
-	global $OpenSimDB;
+	$robust_db = OpenSim_Robust::db();
+	if ( ! $robust_db ) {
+		return false;
+	}
 	if ( ! is_uuid( $regionID ) ) {
 		return false;
 	}
 
-	$result = $OpenSimDB->prepareAndExecute(
+	$result = $robust_db->prepareAndExecute(
 		'SELECT UUID FROM regions WHERE UUID=:uuid AND regionSecret=:regionSecret',
 		array(
 			'uuid'         => $regionID,
