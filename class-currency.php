@@ -36,6 +36,7 @@ class OpenSim_Currency {
             self::disable();
             return;
         }
+        error_log('[DEBUG] ' . __METHOD__ . ' Economy provider: ' . self::$provider);
         
         $base_url = Engine_Settings::get('robust.GridInfoService.economy', Helpers::url());
         if( empty($base_url) ) {
