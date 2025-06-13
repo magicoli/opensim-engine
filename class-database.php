@@ -47,7 +47,7 @@ class OSPDO extends PDO {
 
 			$username    = $credentials['db']['user'];
 			$password = $credentials['db']['pass'];
-			$dbname     = $credentials['db']['name'];
+			$dbname     = $credentials['db']['name'] ?? $credentials['db']['database'] ?? null;
 			$dbhost     = $credentials['db']['host'] . ( empty( $credentials['db']['port'] ) ? '' : ':' . $credentials['db']['port'] );
 		} elseif ( is_array( $args[0] ) ) {
 			// If args are passed as an array, extract them.
@@ -63,7 +63,7 @@ class OSPDO extends PDO {
 			);
 			$username     = $credentials['user'];
 			$password  = $credentials['pass'];
-			$dbname      = $credentials['name'];
+			$dbname      = $credentials['name'] ?? $credentials['database'] ?? null;
 			$dbhost      = $credentials['host'] . ( empty( $credentials['port'] ) ? '' : ':' . $credentials['port'] );
 		} else {
             // split $dsn string formatted as 'mysql:host=$dbhost;dbname=$dbname' into $dbhost and $dbname
@@ -81,8 +81,8 @@ class OSPDO extends PDO {
         }
 
         if( empty($dbname)) {
-            error_log("Database name is empty, aborting connection to $dsn");
-            throw new Exception("Database name is empty, cannot connect to $dsn");
+            error_log("Database name is empty, aborting connection to " . print_r($dsn, true));
+            return new Exception("Database name is empty, cannot connect to " . print_r($dsn, true));
         }
 
 		// Fast connection check before attempting lengthy PDO connection
