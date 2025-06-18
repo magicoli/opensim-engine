@@ -3,7 +3,7 @@
         'name' => 'magicoli/opensim-engine',
         'pretty_version' => '3.x-dev',
         'version' => '3.9999999.9999999.9999999-dev',
-        'reference' => 'fd5bc8d24997d64d128306a6a96ff9c0124f7274',
+        'reference' => '2b33d937195826560a7e5ac92fd451d9f49fb8e2',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -55,7 +55,7 @@
         'magicoli/opensim-engine' => array(
             'pretty_version' => '3.x-dev',
             'version' => '3.9999999.9999999.9999999-dev',
-            'reference' => 'fd5bc8d24997d64d128306a6a96ff9c0124f7274',
+            'reference' => '2b33d937195826560a7e5ac92fd451d9f49fb8e2',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
